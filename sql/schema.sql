@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS customers (
+    customer_id INTEGER PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    age INTEGER,
+    city VARCHAR(100),
+    age_group VARCHAR(20)
+);

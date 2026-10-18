@@ -4,3 +4,10 @@ __pycache__/
 
 data/processed/
 .pytest_cache/
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs
+logs/

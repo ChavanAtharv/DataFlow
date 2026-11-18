@@ -20,6 +20,7 @@ def test_spark_transform_and_gold_parquet(tmp_path):
     spark, transformed_df = transform_data(
         input_path=str(input_csv),
         silver_output_path=str(silver_out),
+        partition_by="city",
     )
 
     try:
@@ -44,10 +45,10 @@ def test_spark_transform_and_gold_parquet(tmp_path):
         assert rows[3]["city"] == "Delhi"
         assert rows[3]["age_group"] == "Senior"
 
-        # Check output parquet was persisted
+        # Check partitioned directory structure was created
         assert silver_out.exists()
-        parquet_files = list(silver_out.glob("*.parquet"))
-        assert len(parquet_files) > 0
+        partition_dirs = [p.name for p in silver_out.iterdir() if p.is_dir()]
+        assert any("city=" in d for d in partition_dirs)
 
         # Test Gold Parquet Layer Generation
         gold_base = str(tmp_path / "gold_output")

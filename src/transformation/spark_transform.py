@@ -26,9 +26,11 @@ def transform_data(
     input_path: str,
     silver_output_path: str = SILVER_OUTPUT_PATH,
     spark: SparkSession | None = None,
+    partition_by: str | list[str] | None = None,
 ) -> tuple[SparkSession, DataFrame]:
     """
-    Transform Bronze CSV data into cleaned, standardized, and enriched Silver Parquet data.
+    Transform Bronze data into cleaned, standardized, and enriched Silver Parquet data
+    with optional columnar partitioning.
     """
     if spark is None:
         spark = get_spark_session()
@@ -56,14 +58,17 @@ def transform_data(
         .withColumn("processed_at", current_timestamp())
     )
 
-    # Persist Silver data in Parquet format
-    (
-        transformed_df.write
-        .mode("overwrite")
-        .parquet(silver_output_path)
-    )
+    # Persist Silver data in Parquet format (with optional partitioning)
+    writer = transformed_df.write.mode("overwrite")
+    if partition_by:
+        if isinstance(partition_by, str):
+            writer = writer.partitionBy(partition_by)
+        else:
+            writer = writer.partitionBy(*partition_by)
 
-    print(f"Silver layer written to: {silver_output_path}")
+    writer.parquet(silver_output_path)
+
+    print(f"Silver layer written to: {silver_output_path} (partition_by={partition_by})")
 
     return spark, transformed_df
 

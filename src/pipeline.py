@@ -1,7 +1,10 @@
 import argparse
+import datetime
+import json
 import logging
 from pathlib import Path
 import tempfile
+import time
 
 from src.config import (
     GOLD_PARQUET_BASE_PATH,
@@ -9,7 +12,7 @@ from src.config import (
     QUARANTINE_DATA_PATH,
     RAW_DATA_PATH,
 )
-from src.ingestion.csv_ingestion import ingest_csv
+from src.ingestion.data_ingestor import ingest_data
 from src.validation.schema_validator import validate_schema
 from src.quality.data_quality import DataQualityError, quarantine_bad_records
 from src.transformation.spark_transform import (
@@ -42,14 +45,21 @@ def run_pipeline(
     input_file: str = RAW_DATA_PATH,
     skip_db: bool = False,
     quarantine_path: str = QUARANTINE_DATA_PATH,
-):
+    partition_by: str | None = None,
+) -> dict:
+    start_time = time.time()
     logger.info("Starting DataFlow pipeline")
-    logger.info("Configuration: input_file=%s, skip_db=%s", input_file, skip_db)
+    logger.info(
+        "Configuration: input_file=%s, skip_db=%s, partition_by=%s",
+        input_file,
+        skip_db,
+        partition_by,
+    )
 
     try:
-        # 1. Ingestion - Bronze
+        # 1. Multi-format Ingestion - Bronze
         logger.info("Step 1: Ingesting source data")
-        raw_df = ingest_csv(input_file)
+        raw_df = ingest_data(input_file)
 
         # 2. Schema validation
         logger.info("Step 2: Validating schema")
@@ -83,7 +93,10 @@ def run_pipeline(
 
         # 4. PySpark transformation - Silver
         logger.info("Step 4: Transforming clean data with PySpark")
-        spark, transformed_df = transform_data(spark_input)
+        spark, transformed_df = transform_data(
+            spark_input,
+            partition_by=partition_by,
+        )
 
         logger.info("Transformed Silver data preview:")
         transformed_df.show()
@@ -113,7 +126,24 @@ def run_pipeline(
 
         spark.stop()
 
-        logger.info("DataFlow pipeline completed successfully")
+        duration = round(time.time() - start_time, 2)
+        logger.info("DataFlow pipeline completed successfully in %s seconds", duration)
+
+        # Generate run summary report
+        report_dir = Path("logs/reports")
+        report_dir.mkdir(parents=True, exist_ok=True)
+        report_file = report_dir / f"run_report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        report_payload = {
+            "status": "SUCCESS",
+            "duration_seconds": duration,
+            "input_file": str(input_file),
+            "partition_by": partition_by,
+            "metrics": quality_results,
+            "timestamp": datetime.datetime.now().isoformat(),
+        }
+        report_file.write_text(json.dumps(report_payload, indent=2))
+        logger.info("Execution report saved to: %s", report_file)
+
         return quality_results
 
     except Exception:
@@ -129,7 +159,7 @@ def parse_args():
         "--input",
         "-i",
         default=RAW_DATA_PATH,
-        help=f"Path to input CSV (default: {RAW_DATA_PATH})",
+        help=f"Path to input CSV/JSON (default: {RAW_DATA_PATH})",
     )
     parser.add_argument(
         "--skip-db",
@@ -141,6 +171,11 @@ def parse_args():
         default=QUARANTINE_DATA_PATH,
         help=f"Path to write quarantined corrupt records (default: {QUARANTINE_DATA_PATH})",
     )
+    parser.add_argument(
+        "--partition-by",
+        default=None,
+        help="Column to partition Silver Parquet by (e.g. city, age_group)",
+    )
     return parser.parse_args()
 
 
@@ -150,4 +185,5 @@ if __name__ == "__main__":
         input_file=args.input,
         skip_db=args.skip_db,
         quarantine_path=args.quarantine_path,
+        partition_by=args.partition_by,
     )

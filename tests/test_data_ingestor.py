@@ -44,3 +44,4 @@ def test_ingest_data_unsupported_format(tmp_path):
 def test_ingest_data_missing_file():
     with pytest.raises(FileNotFoundError):
         ingest_data("non_existent_file.json")
+

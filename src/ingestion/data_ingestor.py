@@ -38,3 +38,4 @@ def ingest_data(file_path: str | Path) -> pd.DataFrame:
     print(f"Records: {len(df)}")
     print(f"Columns: {list(df.columns)}")
     return df
+

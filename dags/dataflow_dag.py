@@ -152,3 +152,4 @@ if AIRFLOW_AVAILABLE:
         ingest >> validate >> quality >> transform_silver
         transform_silver >> [gold_parquet, postgres_staging]
         postgres_staging >> gold_sql
+

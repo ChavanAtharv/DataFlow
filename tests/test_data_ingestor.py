@@ -45,3 +45,9 @@ def test_ingest_data_missing_file():
     with pytest.raises(FileNotFoundError):
         ingest_data("non_existent_file.json")
 
+
+def test_ingest_data_empty_zero_byte_file(tmp_path):
+    empty_file = tmp_path / "empty.json"
+    empty_file.touch()
+    with pytest.raises(ValueError, match="empty"):
+        ingest_data(empty_file)

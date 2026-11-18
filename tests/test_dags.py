@@ -18,3 +18,4 @@ def test_dag_file_imports_cleanly():
     assert hasattr(module, "task_lakehouse_gold_parquet")
     assert hasattr(module, "task_postgres_load_and_merge")
     assert hasattr(module, "task_postgres_gold_marts")
+

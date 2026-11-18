@@ -10,7 +10,7 @@ def build_gold_layer(sql_path: str | Path = GOLD_SQL_PATH):
     if not sql_file.exists():
         raise FileNotFoundError(f"Gold SQL file not found: {sql_file}")
 
-    gold_sql = sql_file.read_text()
+    gold_sql = sql_file.read_text(encoding="utf-8")
 
     connection = psycopg.connect(**get_db_connection_params())
 
@@ -19,8 +19,11 @@ def build_gold_layer(sql_path: str | Path = GOLD_SQL_PATH):
             cursor.execute(gold_sql)
 
         connection.commit()
-
         print("Gold layer built successfully.")
+
+    except Exception:
+        connection.rollback()
+        raise
 
     finally:
         connection.close()

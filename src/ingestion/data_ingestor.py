@@ -22,15 +22,21 @@ def ingest_data(file_path: str | Path) -> pd.DataFrame:
             f"Unsupported file format '{ext}'. Supported formats: {sorted(SUPPORTED_EXTENSIONS)}"
         )
 
+    if path.stat().st_size == 0:
+        raise ValueError(f"Input file '{path}' is empty (0 bytes).")
+
     if ext == ".csv":
         return ingest_csv(str(path))
     elif ext == ".json":
         try:
             # First try standard json array
             df = pd.read_json(path)
-        except ValueError:
-            # Fallback to json lines
-            df = pd.read_json(path, lines=True)
+        except (ValueError, pd.errors.EmptyDataError):
+            try:
+                # Fallback to json lines
+                df = pd.read_json(path, lines=True)
+            except Exception:
+                raise ValueError("Failed to parse JSON file: file is malformed or empty.")
     elif ext == ".parquet":
         df = pd.read_parquet(path)
 
@@ -38,4 +44,3 @@ def ingest_data(file_path: str | Path) -> pd.DataFrame:
     print(f"Records: {len(df)}")
     print(f"Columns: {list(df.columns)}")
     return df
-

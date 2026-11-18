@@ -1,5 +1,7 @@
-import pytest
+from pathlib import Path
 import pandas as pd
+import pytest
+
 from src.ingestion.csv_ingestion import ingest_csv
 
 
@@ -30,3 +32,10 @@ def test_ingest_invalid_file_extension(tmp_path):
     with pytest.raises(ValueError, match="Only CSV files are supported"):
         ingest_csv(str(txt_file))
 
+
+def test_ingest_empty_zero_byte_file(tmp_path):
+    empty_file = tmp_path / "empty.csv"
+    empty_file.touch()
+
+    with pytest.raises(ValueError, match="empty"):
+        ingest_csv(empty_file)

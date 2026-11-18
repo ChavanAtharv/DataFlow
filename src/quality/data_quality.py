@@ -63,9 +63,7 @@ def quarantine_bad_records(
     if df.empty:
         return df, df, run_quality_checks(df, verbose=verbose)
 
-    quarantine_reasons = []
-
-    # 1. Null check
+    # 1. Null check across any column
     null_mask = df.isnull().any(axis=1)
 
     # 2. Duplicate customer_id check
@@ -85,6 +83,12 @@ def quarantine_bad_records(
 
     quarantined_df = df[bad_mask].copy()
     clean_df = df[~bad_mask].copy()
+
+    # Normalize clean integer types
+    if not clean_df.empty:
+        for col_name in ["customer_id", "age"]:
+            if col_name in clean_df.columns:
+                clean_df[col_name] = clean_df[col_name].astype(int)
 
     # Assign reason tags
     if not quarantined_df.empty:

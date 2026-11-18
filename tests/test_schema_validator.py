@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -53,3 +54,17 @@ def test_invalid_age_type():
 
     with pytest.raises(TypeError, match="age must contain integers"):
         validate_schema(df)
+
+
+def test_schema_passes_with_null_in_integer_column():
+    # When pandas reads integer columns with nulls, it casts to float64 with NaN.
+    # Schema validation should pass so Step 3 quarantine can handle the null row.
+    df = pd.DataFrame({
+        "customer_id": [1, 2],
+        "name": ["Aarav", "Neha"],
+        "email": ["aarav@example.com", "neha@example.com"],
+        "age": [24.0, np.nan],
+        "city": ["Pune", "Mumbai"],
+    })
+
+    assert validate_schema(df) is True

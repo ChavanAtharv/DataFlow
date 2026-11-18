@@ -43,9 +43,11 @@ def transform_data(
         .csv(input_path)
     )
 
-    # Clean and transform data into the Silver layer with audit timestamp
+    # Clean and transform data into the Silver layer with explicit casting and audit timestamp
     transformed_df = (
         df
+        .withColumn("customer_id", col("customer_id").cast("integer"))
+        .withColumn("age", col("age").cast("integer"))
         .withColumn("name", trim(col("name")))
         .withColumn("email", lower(trim(col("email"))))
         .withColumn("city", trim(col("city")))

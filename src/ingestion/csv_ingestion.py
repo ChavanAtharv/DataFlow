@@ -1,8 +1,8 @@
-import pandas as pd
 from pathlib import Path
+import pandas as pd
 
 
-def ingest_csv(file_path: str) -> pd.DataFrame:
+def ingest_csv(file_path: str | Path) -> pd.DataFrame:
     path = Path(file_path)
 
     if not path.exists():
@@ -11,7 +11,13 @@ def ingest_csv(file_path: str) -> pd.DataFrame:
     if path.suffix.lower() != ".csv":
         raise ValueError("Only CSV files are supported.")
 
-    df = pd.read_csv(path)
+    if path.stat().st_size == 0:
+        raise ValueError("Input file is empty (0 bytes).")
+
+    try:
+        df = pd.read_csv(path)
+    except pd.errors.EmptyDataError:
+        raise ValueError("Input file contains no readable columns or data.")
 
     print(f"Successfully ingested: {path}")
     print(f"Records: {len(df)}")

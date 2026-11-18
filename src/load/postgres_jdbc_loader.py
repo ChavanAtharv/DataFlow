@@ -30,6 +30,9 @@ def ensure_schema_exists(schema_path: str | Path = SCHEMA_SQL_PATH):
             cursor.execute(schema_sql)
         connection.commit()
         print("Database schema verified/initialized successfully.")
+    except Exception:
+        connection.rollback()
+        raise
     finally:
         connection.close()
 
@@ -96,10 +99,14 @@ def merge_staging_to_customers():
         print("Staging data merged into customers successfully.")
 
     except Exception:
-        # Guarantee cleanup on failure
-        with connection.cursor() as cursor:
-            cursor.execute("DROP TABLE IF EXISTS customers_staging;")
-        connection.commit()
+        # Guarantee rollback before cleanup to avoid InFailedSqlTransaction
+        connection.rollback()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("DROP TABLE IF EXISTS customers_staging;")
+            connection.commit()
+        except Exception:
+            pass
         raise
 
     finally:

@@ -1,35 +1,51 @@
-import os
-
+from pathlib import Path
 import psycopg
 
-
-DB_HOST = "localhost"
-DB_PORT = "5432"
-DB_NAME = "dataflow"
-DB_USER = "dataflow"
+from src.config import (
+    DB_USER,
+    SCHEMA_SQL_PATH,
+    get_db_connection_params,
+    get_db_password,
+    get_jdbc_url,
+)
 
 
 def get_db_url():
-    password = os.getenv("DB_PASSWORD")
+    # Retain for backward compatibility
+    get_db_password()
+    return get_jdbc_url()
 
-    if not password:
-        raise RuntimeError("DB_PASSWORD environment variable is not set")
 
-    return (
-        f"jdbc:postgresql://{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    )
+def ensure_schema_exists(schema_path: str | Path = SCHEMA_SQL_PATH):
+    """Ensure the target tables exist before loading staging data."""
+    sql_file = Path(schema_path)
+    if not sql_file.exists():
+        raise FileNotFoundError(f"Schema file not found: {sql_file}")
+
+    schema_sql = sql_file.read_text(encoding="utf-8")
+
+    connection = psycopg.connect(**get_db_connection_params())
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(schema_sql)
+        connection.commit()
+        print("Database schema verified/initialized successfully.")
+    finally:
+        connection.close()
 
 
 def write_to_staging(spark_df):
-    password = os.getenv("DB_PASSWORD")
+    """Write DataFrame into PostgreSQL staging table via JDBC."""
+    password = get_db_password()
 
-    if not password:
-        raise RuntimeError("DB_PASSWORD environment variable is not set")
+    # Exclude non-database temporary columns like processed_at if not in table
+    staging_cols = ["customer_id", "name", "email", "age", "city", "age_group"]
+    df_to_load = spark_df.select(*[c for c in staging_cols if c in spark_df.columns])
 
     (
-        spark_df.write
+        df_to_load.write
         .format("jdbc")
-        .option("url", get_db_url())
+        .option("url", get_jdbc_url())
         .option("dbtable", "customers_staging")
         .option("user", DB_USER)
         .option("password", password)
@@ -42,18 +58,8 @@ def write_to_staging(spark_df):
 
 
 def merge_staging_to_customers():
-    password = os.getenv("DB_PASSWORD")
-
-    if not password:
-        raise RuntimeError("DB_PASSWORD environment variable is not set")
-
-    connection = psycopg.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=password,
-    )
+    """Atomically merge staging records into the primary customers table."""
+    connection = psycopg.connect(**get_db_connection_params())
 
     try:
         with connection.cursor() as cursor:
@@ -80,14 +86,21 @@ def merge_staging_to_customers():
                     email = EXCLUDED.email,
                     age = EXCLUDED.age,
                     city = EXCLUDED.city,
-                    age_group = EXCLUDED.age_group;
+                    age_group = EXCLUDED.age_group,
+                    updated_at = CURRENT_TIMESTAMP;
             """)
 
             cursor.execute("DROP TABLE IF EXISTS customers_staging;")
 
         connection.commit()
-
         print("Staging data merged into customers successfully.")
+
+    except Exception:
+        # Guarantee cleanup on failure
+        with connection.cursor() as cursor:
+            cursor.execute("DROP TABLE IF EXISTS customers_staging;")
+        connection.commit()
+        raise
 
     finally:
         connection.close()

@@ -1,15 +1,10 @@
-import os
 import psycopg
+
+from src.config import get_db_connection_params
 
 
 def get_connection():
-    return psycopg.connect(
-        host=os.getenv("DB_HOST", "localhost"),
-        port=os.getenv("DB_PORT", "5432"),
-        dbname=os.getenv("DB_NAME", "dataflow"),
-        user=os.getenv("DB_USER", "dataflow"),
-        password=os.getenv("DB_PASSWORD"),
-    )
+    return psycopg.connect(**get_db_connection_params())
 
 
 def load_customers(rows):
@@ -23,7 +18,8 @@ def load_customers(rows):
             email = EXCLUDED.email,
             age = EXCLUDED.age,
             city = EXCLUDED.city,
-            age_group = EXCLUDED.age_group;
+            age_group = EXCLUDED.age_group,
+            updated_at = CURRENT_TIMESTAMP;
     """
 
     with get_connection() as conn:

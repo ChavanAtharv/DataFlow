@@ -1,13 +1,26 @@
+# Virtual Environment
 .venv/
+venv/
+env/
+
+# Python cache & artifacts
 __pycache__/
 *.pyc
-
-data/processed/
+*.pyo
+*.pyd
 .pytest_cache/
+.coverage
+htmlcov/
 
-# Python
-__pycache__/
-*.pyc
+# Processed & Quarantine data
+data/processed/
+data/quarantine/
+
+# Environment files
+.env
+.env.local
+!.env.example
 
 # Logs
 logs/
+*.log

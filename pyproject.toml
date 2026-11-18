@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dataflow"
+version = "0.1.0"
+description = "Production-grade Medallion ETL pipeline using PySpark, PostgreSQL, and Pandas"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Atharv Chavan", email = "chavanatharvx@gmail.com" }
+]
+dependencies = [
+    "pandas>=2.0.0",
+    "pyspark>=3.5.0",
+    "psycopg[binary]>=3.1.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-v --import-mode=importlib"
+

@@ -51,3 +51,13 @@ def test_ingest_data_empty_zero_byte_file(tmp_path):
     empty_file.touch()
     with pytest.raises(ValueError, match="empty"):
         ingest_data(empty_file)
+
+
+def test_ingest_data_parquet(tmp_path):
+    import duckdb
+    parquet_file = tmp_path / "customers.parquet"
+    duckdb.query("SELECT 1 AS customer_id, 'Kavita' AS name, 'k@ex.com' AS email, 29 AS age, 'Pune' AS city").write_parquet(str(parquet_file))
+    df = ingest_data(parquet_file)
+    assert len(df) == 1
+    assert df.iloc[0]["name"] == "Kavita"
+    assert df.iloc[0]["customer_id"] == 1

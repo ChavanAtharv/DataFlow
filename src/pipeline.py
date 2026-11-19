@@ -85,14 +85,11 @@ def run_pipeline(
         if clean_df.empty:
             raise DataQualityError("All ingested records failed quality checks; aborting pipeline.")
 
-        # Determine path to feed into PySpark
-        if len(quarantined_df) > 0:
-            temp_clean_dir = Path(tempfile.mkdtemp(prefix="dataflow_clean_"))
-            clean_csv_path = str(temp_clean_dir / "clean_customers.csv")
-            clean_df.to_csv(clean_csv_path, index=False)
-            spark_input = clean_csv_path
-        else:
-            spark_input = input_file
+        # Standardize clean records into staging CSV for robust PySpark consumption
+        temp_clean_dir = Path(tempfile.mkdtemp(prefix="dataflow_clean_"))
+        clean_csv_path = str(temp_clean_dir / "clean_customers.csv")
+        clean_df.to_csv(clean_csv_path, index=False)
+        spark_input = clean_csv_path
 
         # 4. PySpark transformation - Silver
         logger.info("Step 4: Transforming clean data with PySpark")

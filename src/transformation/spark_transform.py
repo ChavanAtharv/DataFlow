@@ -35,13 +35,20 @@ def transform_data(
     if spark is None:
         spark = get_spark_session()
 
-    # Read Bronze data
-    df = (
-        spark.read
-        .option("header", True)
-        .option("inferSchema", True)
-        .csv(input_path)
-    )
+    # Read Bronze data (auto-detect format from extension)
+    input_p = Path(input_path)
+    ext = input_p.suffix.lower()
+    if ext == ".parquet" or (input_p.is_dir() and any(input_p.glob("*.parquet"))):
+        df = spark.read.parquet(input_path)
+    elif ext == ".json":
+        df = spark.read.json(input_path)
+    else:
+        df = (
+            spark.read
+            .option("header", True)
+            .option("inferSchema", True)
+            .csv(input_path)
+        )
 
     # Clean and transform data into the Silver layer with explicit casting and audit timestamp
     transformed_df = (

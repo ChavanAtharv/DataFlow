@@ -29,6 +29,13 @@ def test_resolve_parquet_pattern_missing():
         resolve_parquet_pattern("non_existent_dir_dataflow")
 
 
+def test_resolve_parquet_pattern_empty_dir(tmp_path):
+    empty_dir = tmp_path / "empty_dir"
+    empty_dir.mkdir()
+    with pytest.raises(FileNotFoundError, match="No Parquet files found in directory"):
+        resolve_parquet_pattern(empty_dir)
+
+
 def test_resolve_parquet_pattern_dir(sample_parquet_dir):
     pattern = resolve_parquet_pattern(sample_parquet_dir)
     assert pattern.endswith("*.parquet")

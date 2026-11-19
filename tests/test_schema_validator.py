@@ -68,3 +68,9 @@ def test_schema_passes_with_null_in_integer_column():
     })
 
     assert validate_schema(df) is True
+
+
+def test_schema_passes_with_empty_dataframe_having_correct_columns():
+    df = pd.DataFrame(columns=["customer_id", "name", "email", "age", "city"])
+    assert validate_schema(df) is True
+

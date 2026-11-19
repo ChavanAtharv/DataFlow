@@ -38,7 +38,12 @@ def ingest_data(file_path: str | Path) -> pd.DataFrame:
             except Exception:
                 raise ValueError("Failed to parse JSON file: file is malformed or empty.")
     elif ext == ".parquet":
-        df = pd.read_parquet(path)
+        try:
+            df = pd.read_parquet(path)
+        except ImportError:
+            # Fallback to DuckDB native parquet reader if pyarrow/fastparquet is not installed
+            import duckdb
+            df = duckdb.read_parquet(str(path)).df()
 
     print(f"Successfully ingested ({ext}): {path}")
     print(f"Records: {len(df)}")

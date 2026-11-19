@@ -18,6 +18,10 @@ def validate_schema(df: pd.DataFrame) -> bool:
             f"Schema validation failed. Missing columns: {sorted(missing_columns)}"
         )
 
+    if df.empty:
+        print("Schema validation passed (empty dataset).")
+        return True
+
     # Validate customer_id: allow pure integers or float with nulls (converted by pandas when nulls exist)
     col_cid = df["customer_id"]
     if not (

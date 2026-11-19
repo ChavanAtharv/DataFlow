@@ -74,3 +74,28 @@ def test_pipeline_all_records_corrupt_fails(tmp_path):
             skip_db=True,
             quarantine_path=str(quarantine_file),
         )
+
+
+def test_pipeline_json_array_execution(tmp_path):
+    import json
+    json_file = tmp_path / "customers.json"
+    json_file.write_text(json.dumps([
+        {"customer_id": 1, "name": "Aarav", "email": "aarav@example.com", "age": 24, "city": "Pune"},
+        {"customer_id": 2, "name": "Neha", "email": "neha@example.com", "age": 27, "city": "Mumbai"},
+    ]))
+
+    quarantine_file = tmp_path / "quarantine.csv"
+    silver_out = tmp_path / "silver_json_test"
+
+    results = run_pipeline(
+        input_file=str(json_file),
+        skip_db=True,
+        quarantine_path=str(quarantine_file),
+        silver_output_path=str(silver_out),
+    )
+
+    assert results["total_records"] == 2
+    assert results["clean_records"] == 2
+    assert results["quarantined_records"] == 0
+    assert (silver_out).exists()
+

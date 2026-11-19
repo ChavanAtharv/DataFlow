@@ -20,9 +20,11 @@ def resolve_parquet_pattern(parquet_path: str | Path = SILVER_OUTPUT_PATH) -> st
     elif p.is_dir():
         # Check if directory has parquets directly or in partition subdirectories
         has_subdirs = any(item.is_dir() for item in p.iterdir())
-        if has_subdirs:
-            return f"{str(p)}/**/*.parquet"
-        return f"{str(p)}/*.parquet"
+        pattern = f"{str(p)}/**/*.parquet" if has_subdirs else f"{str(p)}/*.parquet"
+        matched = list(p.glob("**/*.parquet")) if has_subdirs else list(p.glob("*.parquet"))
+        if not matched:
+            raise FileNotFoundError(f"No Parquet files found in directory: {p}")
+        return pattern
     return str(parquet_path)
 
 

@@ -14,10 +14,13 @@ def test_pipeline_skip_db_execution(tmp_path):
     )
 
     quarantine_file = tmp_path / "quarantine.csv"
+    silver_out = tmp_path / "silver_test"
+
     results = run_pipeline(
         input_file=str(csv_file),
         skip_db=True,
         quarantine_path=str(quarantine_file),
+        silver_output_path=str(silver_out),
     )
 
     assert isinstance(results, dict)
@@ -36,10 +39,13 @@ def test_pipeline_with_quarantine_records(tmp_path):
     )
 
     quarantine_file = tmp_path / "quarantine.csv"
+    silver_out = tmp_path / "silver_test"
+
     results = run_pipeline(
         input_file=str(csv_file),
         skip_db=True,
         quarantine_path=str(quarantine_file),
+        silver_output_path=str(silver_out),
     )
 
     assert results["total_records"] == 3

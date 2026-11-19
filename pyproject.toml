@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dataflow"
-version = "0.1.0"
-description = "Production-grade Medallion ETL pipeline using PySpark, PostgreSQL, and Pandas"
+version = "0.2.0"
+description = "Production-grade Medallion ETL pipeline using PySpark, DuckDB, PostgreSQL, and Pandas"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -17,6 +17,7 @@ dependencies = [
     "pyspark>=3.5.0",
     "psycopg[binary]>=3.1.0",
     "pydantic>=2.0.0",
+    "duckdb>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -30,4 +31,3 @@ minversion = "7.0"
 pythonpath = ["."]
 testpaths = ["tests"]
 addopts = "-v --import-mode=importlib"
-

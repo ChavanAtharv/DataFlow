@@ -11,6 +11,7 @@ from src.config import (
     LOG_FILE_PATH,
     QUARANTINE_DATA_PATH,
     RAW_DATA_PATH,
+    SILVER_OUTPUT_PATH,
 )
 from src.ingestion.data_ingestor import ingest_data
 from src.validation.schema_validator import validate_schema
@@ -19,6 +20,7 @@ from src.transformation.spark_transform import (
     build_gold_parquet_layers,
     transform_data,
 )
+from src.analytics.duckdb_layer import DuckDBAnalytics
 from src.load.postgres_jdbc_loader import (
     ensure_schema_exists,
     merge_staging_to_customers,
@@ -46,6 +48,7 @@ def run_pipeline(
     skip_db: bool = False,
     quarantine_path: str = QUARANTINE_DATA_PATH,
     partition_by: str | None = None,
+    silver_output_path: str = SILVER_OUTPUT_PATH,
 ) -> dict:
     start_time = time.time()
     logger.info("Starting DataFlow pipeline")
@@ -95,6 +98,7 @@ def run_pipeline(
         logger.info("Step 4: Transforming clean data with PySpark")
         spark, transformed_df = transform_data(
             spark_input,
+            silver_output_path=silver_output_path,
             partition_by=partition_by,
         )
 
@@ -105,23 +109,29 @@ def run_pipeline(
         logger.info("Step 5: Generating Lakehouse Gold Parquet layers")
         build_gold_parquet_layers(transformed_df, gold_output_base=GOLD_PARQUET_BASE_PATH)
 
+        # 6. In-Process DuckDB SQL Analytics on Silver Parquet
+        logger.info("Step 6: Running serverless DuckDB OLAP queries on Parquet")
+        duck_analytics = DuckDBAnalytics(silver_output_path)
+        city_dist = duck_analytics.city_distribution()
+        logger.info("DuckDB City distribution summary:\n%s", city_dist.to_string(index=False))
+
         if skip_db:
             logger.info("Skipping PostgreSQL steps (--skip-db flag set)")
         else:
-            # 6. Database schema verification
-            logger.info("Step 6: Verifying / initializing PostgreSQL target schema")
+            # 7. Database schema verification
+            logger.info("Step 7: Verifying / initializing PostgreSQL target schema")
             ensure_schema_exists()
 
-            # 7. Load into PostgreSQL staging
-            logger.info("Step 7: Loading data into PostgreSQL staging via JDBC")
+            # 8. Load into PostgreSQL staging
+            logger.info("Step 8: Loading data into PostgreSQL staging via JDBC")
             write_to_staging(transformed_df)
 
-            # 8. Merge into final PostgreSQL table
-            logger.info("Step 8: Merging staging data into customers")
+            # 9. Merge into final PostgreSQL table
+            logger.info("Step 9: Merging staging data into customers")
             merge_staging_to_customers()
 
-            # 9. Build Gold analytics SQL marts
-            logger.info("Step 9: Building Gold analytics SQL marts")
+            # 10. Build Gold analytics SQL marts
+            logger.info("Step 10: Building Gold analytics SQL marts")
             build_gold_layer()
 
         spark.stop()
